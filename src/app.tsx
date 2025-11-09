@@ -7,6 +7,13 @@ import Dashboard from "@/pages/dashboard";
 import Home from "@/pages/home";
 import SignIn from "@/pages/sign-in";
 import SignUp from "@/pages/sign-up";
+import Research from "@/pages/research";
+import Documents from "@/pages/documents";
+import Cases from "@/pages/cases";
+import OSINT from "@/pages/osint";
+import SelfRep from "@/pages/self-rep";
+import Knowledge from "@/pages/knowledge";
+import Procedures from "@/pages/procedures";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 export function App() {
@@ -16,12 +23,22 @@ export function App() {
         <Route path="/" element={<Home />} />
 
         {/* Authentication routes */}
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/sign-up" element={<SignUp />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
 
         {/* Billing routes */}
         <Route
           path="/billing"
+          element={
+            <RequireAuth>
+              <Billing />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/pricing"
           element={
             <RequireAuth>
               <Billing />
@@ -37,12 +54,86 @@ export function App() {
           }
         />
 
-        {/* Chat routes */}
+        {/* AI Lawyer Features */}
         <Route
           path="/chat"
           element={
             <RequireAuth>
               <Chat />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/chat/:conversationId"
+          element={
+            <RequireAuth>
+              <Chat />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/research"
+          element={
+            <RequireAuth>
+              <Research />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/documents"
+          element={
+            <RequireAuth>
+              <Documents />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/cases"
+          element={
+            <RequireAuth>
+              <Cases />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/osint"
+          element={
+            <RequireAuth>
+              <OSINT />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/self-rep"
+          element={
+            <RequireAuth>
+              <SelfRep />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/knowledge"
+          element={
+            <RequireAuth>
+              <Knowledge />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/procedures"
+          element={
+            <RequireAuth>
+              <Procedures />
+            </RequireAuth>
+          }
+        />
+
+        {/* Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <Dashboard />
             </RequireAuth>
           }
         />

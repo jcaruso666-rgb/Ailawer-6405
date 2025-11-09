@@ -1,13 +1,13 @@
 {
   "site": {
-    "name": "Minimal Starter",
-    "tagline": "Your Creative Canvas",
-    "description": "A clean, minimal starter template providing the perfect foundation for your next project. Built with modern tools and ready for your creativity.",
+    "name": "AI Lawyer Pro",
+    "tagline": "Your AI-Powered Legal Assistant",
+    "description": "The most powerful AI lawyer application with legal research, document drafting, case management, and direct legal advice. Get instant answers to any legal question.",
     "ogImage": "/og-image.png",
     "twitterHandle": "",
     "contact": {
-      "email": "contact@example.com",
-      "company": "Your Company",
+      "email": "support@ailawyerpro.com",
+      "company": "AI Lawyer Pro",
       "address": ""
     },
     "legal": {
