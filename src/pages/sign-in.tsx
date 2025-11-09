@@ -42,27 +42,47 @@ export default function SignIn() {
       setIsLoading(true);
       setSuccess(false);
       
+      console.log('[SIGN IN] Attempting sign in for:', data.email);
+      console.log('[SIGN IN] Auth client baseURL:', (authClient as any)._baseURL || 'unknown');
+      
       const result = await authClient.signIn.email({
         email: data.email,
         password: data.password,
       });
       
+      console.log('[SIGN IN] Result:', result);
+      
       if (result.error) {
+        console.error('[SIGN IN] Error from auth:', result.error);
         setError(result.error.message || "Invalid email or password. Please try again.");
         setIsLoading(false);
         return;
       }
       
+      console.log('[SIGN IN] Success! User:', result.data);
       setSuccess(true);
       
       const from = (location.state as any)?.from?.pathname || "/dashboard";
+      console.log('[SIGN IN] Redirecting to:', from);
       setTimeout(() => {
         navigate(from, { replace: true });
       }, 500);
       
     } catch (err: any) {
-      console.error("Sign-in error:", err);
-      setError(err?.message || "An error occurred during sign in. Please try again.");
+      console.error('[SIGN IN] Exception:', err);
+      console.error('[SIGN IN] Error stack:', err?.stack);
+      
+      let errorMessage = "An error occurred during sign in. Please try again.";
+      
+      if (err?.message?.includes("fetch") || err?.message?.includes("Network")) {
+        errorMessage = "Network error: Unable to connect to the server. Please check your connection and try again.";
+      } else if (err?.message?.includes("CORS")) {
+        errorMessage = "Connection error: Cross-origin request blocked. Please contact support.";
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   });

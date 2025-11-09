@@ -5,8 +5,34 @@ import { apiRoutes } from "./routes";
 import type { HonoContext } from "./types";
 
 const app = new Hono<HonoContext>()
-  .use("*", cors())
+  .use("*", cors({
+    origin: (origin) => {
+      if (!origin) return "*";
+      
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://runable.cloud",
+        "https://runable.com"
+      ];
+      
+      if (allowedOrigins.includes(origin) || origin.includes(".e2b.app") || origin.includes(".workers.dev") || origin.includes(".pages.dev")) {
+        console.log("[CORS] Allowing origin:", origin);
+        return origin;
+      }
+      
+      console.log("[CORS] Unknown origin, allowing with wildcard:", origin);
+      return "*";
+    },
+    credentials: true,
+    allowHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    exposeHeaders: ["Content-Length", "Content-Type"],
+    maxAge: 86400,
+  }))
   .onError((err, c) => {
+    console.error("[WORKER ERROR]", err);
+    console.error("[WORKER ERROR] Stack:", err.stack);
     return c.json(
       {
         error: "Internal Server Error",
@@ -17,7 +43,29 @@ const app = new Hono<HonoContext>()
     );
   })
   .use("*", authMiddleware)
-  .get("/ping", (c) => c.json({ message: "ok", timestamp: Date.now() }))
+  .get("/ping", (c) => {
+    console.log("[PING] Received ping request");
+    return c.json({ 
+      message: "pong", 
+      timestamp: Date.now(),
+      env: {
+        hasD1: !!c.env.D1,
+        hasBetterAuthSecret: !!c.env.BETTER_AUTH_SECRET,
+        betterAuthUrl: c.env.VITE_BETTER_AUTH_URL || "not set"
+      }
+    });
+  })
+  .get("/api/health", (c) => {
+    console.log("[HEALTH] Health check");
+    return c.json({ 
+      status: "ok", 
+      timestamp: Date.now(),
+      auth: {
+        configured: !!c.env.BETTER_AUTH_SECRET,
+        url: c.env.VITE_BETTER_AUTH_URL || "not set"
+      }
+    });
+  })
   .get("/protected", authenticatedOnly, (c) =>
     c.json({ message: "ok", timestamp: Date.now() })
   )
@@ -28,7 +76,6 @@ const app = new Hono<HonoContext>()
     }
     return c.json(user);
   })
-  // Mount routers
   .route("/api", apiRoutes)
   .all("*", async (c) => {
     const url = new URL(c.req.url);

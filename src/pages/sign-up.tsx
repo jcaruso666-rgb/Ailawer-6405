@@ -36,33 +36,49 @@ export default function SignUp() {
     setSuccess(false);
     
     try {
+      console.log('[SIGN UP] Attempting sign up for:', data.email);
+      console.log('[SIGN UP] Auth client baseURL:', (authClient as any)._baseURL || 'unknown');
+      
       const result = await authClient.signUp.email({
         name: data.name,
         email: data.email,
         password: data.password,
       });
       
+      console.log('[SIGN UP] Result:', result);
+      
       if (result.error) {
+        console.error('[SIGN UP] Error from auth:', result.error);
         setError(result.error.message || "Sign up failed. Please try again.");
         setIsLoading(false);
         return;
       }
       
+      console.log('[SIGN UP] Success! User:', result.data);
       setSuccess(true);
       
       setTimeout(() => {
+        console.log('[SIGN UP] Redirecting to dashboard');
         navigate("/dashboard", { replace: true });
       }, 1000);
       
     } catch (e: any) {
-      console.error("Sign up failed:", e);
-      if (e?.code && e?.message) {
-        setError(`${e.code}: ${e.message}`);
+      console.error('[SIGN UP] Exception:', e);
+      console.error('[SIGN UP] Error stack:', e?.stack);
+      
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      
+      if (e?.message?.includes("fetch") || e?.message?.includes("Network")) {
+        errorMessage = "Network error: Unable to connect to the server. Please check your connection and try again.";
+      } else if (e?.message?.includes("CORS")) {
+        errorMessage = "Connection error: Cross-origin request blocked. Please contact support.";
+      } else if (e?.code && e?.message) {
+        errorMessage = `${e.code}: ${e.message}`;
       } else if (e?.message) {
-        setError(e.message);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
+        errorMessage = e.message;
       }
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   });
