@@ -15,6 +15,7 @@ import { z } from "zod/v4";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -26,10 +27,13 @@ export default function SignUp() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>();
+  
   const onSubmitHandler = form.handleSubmit(async (data) => {
     setIsLoading(true);
     setError(null);
+    setSuccess(false);
     
     try {
       const result = await authClient.signUp.email({
@@ -38,17 +42,20 @@ export default function SignUp() {
         password: data.password,
       });
       
-      // Check if the result contains an error
       if (result.error) {
-        setError(result.error.message || "Sign up failed");
+        setError(result.error.message || "Sign up failed. Please try again.");
+        setIsLoading(false);
         return;
       }
       
-      // Only redirect if there's no error
-      navigate("/");
+      setSuccess(true);
+      
+      setTimeout(() => {
+        navigate("/dashboard", { replace: true });
+      }, 1000);
+      
     } catch (e: any) {
       console.error("Sign up failed:", e);
-      // Handle different error formats
       if (e?.code && e?.message) {
         setError(`${e.code}: ${e.message}`);
       } else if (e?.message) {
@@ -56,7 +63,6 @@ export default function SignUp() {
       } else {
         setError("An unexpected error occurred. Please try again.");
       }
-    } finally {
       setIsLoading(false);
     }
   });
@@ -74,16 +80,19 @@ export default function SignUp() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Error Alert */}
           {error && (
             <Alert variant="destructive" className="mb-4 border-red-200 bg-red-50/50 text-red-800 animate-in slide-in-from-top-2 duration-300">
+              <AlertCircle className="h-4 w-4 text-red-500" />
               <AlertDescription className="text-red-700 font-medium">
-                <div className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  <span>{error}</span>
-                </div>
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert className="mb-4 border-green-200 bg-green-50/50 text-green-800">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-700 font-medium">
+                Account created successfully! Redirecting to dashboard...
               </AlertDescription>
             </Alert>
           )}
@@ -97,7 +106,11 @@ export default function SignUp() {
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <Input 
+                        placeholder="John Doe" 
+                        disabled={isLoading || success}
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -110,7 +123,12 @@ export default function SignUp() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="name@example.com" type="email" {...field} />
+                      <Input 
+                        placeholder="name@example.com" 
+                        type="email" 
+                        disabled={isLoading || success}
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -123,14 +141,19 @@ export default function SignUp() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input 
+                        type="password" 
+                        placeholder="••••••••" 
+                        disabled={isLoading || success}
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Account"}
+              <Button type="submit" className="w-full" disabled={isLoading || success}>
+                {isLoading ? "Creating Account..." : success ? "Success!" : "Create Account"}
               </Button>
             </form>
           </Form>

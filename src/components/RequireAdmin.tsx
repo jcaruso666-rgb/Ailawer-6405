@@ -10,44 +10,64 @@ export default function RequireAdmin({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    let checkCount = 0;
+    const maxChecks = 3;
+    
+    const checkAuth = async () => {
       try {
         const { data } = await authClient.getSession();
         if (!mounted) return;
+        
         const hasSession = !!data?.session;
         const userRole = data?.user?.role;
+        const adminStatus = hasSession && userRole === "admin";
+        
         setAuthenticated(hasSession);
-        setIsAdmin(hasSession && userRole === "admin");
-      } catch {
+        setIsAdmin(adminStatus);
+        
+        if (!hasSession && checkCount < maxChecks) {
+          checkCount++;
+          setTimeout(checkAuth, 300);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Admin auth check error:", error);
         if (!mounted) return;
         setAuthenticated(false);
         setIsAdmin(false);
-      } finally {
-        if (mounted) setLoading(false);
+        
+        if (checkCount < maxChecks) {
+          checkCount++;
+          setTimeout(checkAuth, 300);
+        } else {
+          setLoading(false);
+        }
       }
-    })();
+    };
+
+    checkAuth();
+    
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [location.pathname]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+        <div className="text-center space-y-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Checking authentication...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to sign-in if not authenticated
   if (!authenticated) {
     return <Navigate to="/sign-in" replace state={{ from: location }} />;
   }
 
-  // Redirect to home if authenticated but not admin
   if (!isAdmin) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }

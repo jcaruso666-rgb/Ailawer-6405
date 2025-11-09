@@ -9,25 +9,58 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    let checkCount = 0;
+    const maxChecks = 3;
+    
+    const checkAuth = async () => {
       try {
         const { data } = await authClient.getSession();
         if (!mounted) return;
-        setAuthenticated(!!data?.session);
-      } catch {
+        
+        const isAuth = !!data?.session;
+        setAuthenticated(isAuth);
+        
+        if (!isAuth && checkCount < maxChecks) {
+          checkCount++;
+          setTimeout(checkAuth, 300);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
         if (!mounted) return;
         setAuthenticated(false);
-      } finally {
-        if (mounted) setLoading(false);
+        
+        if (checkCount < maxChecks) {
+          checkCount++;
+          setTimeout(checkAuth, 300);
+        } else {
+          setLoading(false);
+        }
       }
-    })();
+    };
+
+    checkAuth();
+    
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [location.pathname]);
 
-  if (loading) return <div className="p-6 text-sm text-muted-foreground">Checking session…</div>;
-  if (!authenticated) return <Navigate to="/sign-in" replace state={{ from: location }} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!authenticated) {
+    return <Navigate to="/sign-in" replace state={{ from: location }} />;
+  }
+  
   return <>{children}</>;
 }
-

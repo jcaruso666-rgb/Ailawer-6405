@@ -18,10 +18,10 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod/v4";
 import { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -30,22 +30,40 @@ const formSchema = z.object({
 
 export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>();
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const onSubmitHandler = form.handleSubmit(async (data) => {
     try {
       setError(null);
+      setIsLoading(true);
+      setSuccess(false);
+      
       const result = await authClient.signIn.email({
         email: data.email,
         password: data.password,
-        callbackURL: "/",
       });
       
       if (result.error) {
         setError(result.error.message || "Invalid email or password. Please try again.");
+        setIsLoading(false);
+        return;
       }
-    } catch (err) {
-      setError("An error occurred during sign in. Please try again.");
+      
+      setSuccess(true);
+      
+      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 500);
+      
+    } catch (err: any) {
+      console.error("Sign-in error:", err);
+      setError(err?.message || "An error occurred during sign in. Please try again.");
+      setIsLoading(false);
     }
   });
 
@@ -71,6 +89,14 @@ export default function SignIn() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          {success && (
+            <Alert className="mb-4 border-green-200 bg-green-50/50 text-green-800">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-700">
+                Successfully signed in! Redirecting...
+              </AlertDescription>
+            </Alert>
+          )}
           <Form {...form}>
             <form onSubmit={onSubmitHandler} className="space-y-4">
               <FormField
@@ -83,6 +109,7 @@ export default function SignIn() {
                       <Input
                         placeholder="name@example.com"
                         type="email"
+                        disabled={isLoading || success}
                         {...field}
                       />
                     </FormControl>
@@ -100,6 +127,7 @@ export default function SignIn() {
                       <Input
                         type="password"
                         placeholder="••••••••"
+                        disabled={isLoading || success}
                         {...field}
                       />
                     </FormControl>
@@ -107,8 +135,8 @@ export default function SignIn() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Sign In
+              <Button type="submit" className="w-full" disabled={isLoading || success}>
+                {isLoading ? "Signing in..." : success ? "Success!" : "Sign In"}
               </Button>
             </form>
           </Form>
