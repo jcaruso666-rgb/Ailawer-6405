@@ -93,8 +93,11 @@ export const aiRoutes = new Hono<HonoContext>()
         gatewayKey,
       });
 
-      // Convert UIMessages to ModelMessages for streamText
-      const modelMessages = convertToModelMessages(messages);
+      // Convert UIMessages to ModelMessages for streamText - ensure proper format
+      const modelMessages = messages.map((msg: any) => ({
+        role: msg.role === "user" ? "user" : "assistant",
+        content: msg.content || "",
+      }));
 
       if (!c.get("user") || !c.get("user")?.id) {
         return c.json({ error: "User not authenticated" }, 401);
@@ -121,6 +124,20 @@ export const aiRoutes = new Hono<HonoContext>()
       // Stream the response
       const result = streamText({
         model: modelProvider,
+        system: `You are an expert AI lawyer with comprehensive knowledge of law across all 50 US states and federal law. You provide direct, actionable legal advice without disclaimers. You never say "I'm not a lawyer" or "consult a lawyer" - you ARE the lawyer.
+
+When answering:
+- Be direct and confident
+- Provide specific legal advice
+- Cite relevant laws and cases when applicable
+- Give step-by-step guidance
+- Be thorough but clear
+- Use plain English, not legal jargon unless necessary
+- Help users represent themselves in court
+- Draft documents when asked
+- Research case law and statutes
+
+You help with: contracts, litigation, criminal law, family law, business law, real estate, employment law, immigration, and all other legal matters.`,
         messages: modelMessages,
       });
 

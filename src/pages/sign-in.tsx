@@ -6,166 +6,112 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth";
-import { useForm } from "react-hook-form";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { z } from "zod/v4";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
-
-const formSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+import { AlertCircle } from "lucide-react";
 
 export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const form = useForm<z.infer<typeof formSchema>>();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const location = useLocation();
   
-  const onSubmitHandler = form.handleSubmit(async (data) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
       setError(null);
       setIsLoading(true);
-      setSuccess(false);
-      
-      console.log('[SIGN IN] Attempting sign in for:', data.email);
-      console.log('[SIGN IN] Auth client baseURL:', (authClient as any)._baseURL || 'unknown');
       
       const result = await authClient.signIn.email({
-        email: data.email,
-        password: data.password,
+        email,
+        password,
+        callbackURL: "/dashboard",
       });
       
-      console.log('[SIGN IN] Result:', result);
-      
       if (result.error) {
-        console.error('[SIGN IN] Error from auth:', result.error);
-        setError(result.error.message || "Invalid email or password. Please try again.");
+        setError(result.error.message || "Invalid email or password");
         setIsLoading(false);
         return;
       }
       
-      console.log('[SIGN IN] Success! User:', result.data);
-      setSuccess(true);
-      
-      const from = (location.state as any)?.from?.pathname || "/dashboard";
-      console.log('[SIGN IN] Redirecting to:', from);
-      setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 500);
+      // Force navigation
+      window.location.href = "/dashboard";
       
     } catch (err: any) {
-      console.error('[SIGN IN] Exception:', err);
-      console.error('[SIGN IN] Error stack:', err?.stack);
-      
-      let errorMessage = "An error occurred during sign in. Please try again.";
-      
-      if (err?.message?.includes("fetch") || err?.message?.includes("Network")) {
-        errorMessage = "Network error: Unable to connect to the server. Please check your connection and try again.";
-      } else if (err?.message?.includes("CORS")) {
-        errorMessage = "Connection error: Cross-origin request blocked. Please contact support.";
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
+      console.error("Sign in error:", err);
+      setError("Unable to sign in. Please try again.");
       setIsLoading(false);
     }
-  });
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Link
-        to="/"
-        className="absolute top-4 left-4 text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-      >
-        <span>←</span> Back to Home
-      </Link>
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      <Card className="w-full max-w-md mx-4">
+        <CardHeader>
+          <CardTitle>Sign in</CardTitle>
           <CardDescription>
             Enter your email and password to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {success && (
-            <Alert className="mb-4 border-green-200 bg-green-50/50 text-green-800">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700">
-                Successfully signed in! Redirecting...
-              </AlertDescription>
-            </Alert>
-          )}
-          <Form {...form}>
-            <form onSubmit={onSubmitHandler} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="name@example.com"
-                        type="email"
-                        disabled={isLoading || success}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                disabled={isLoading}
               />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        disabled={isLoading || success}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={isLoading}
               />
-              <Button type="submit" className="w-full" disabled={isLoading || success}>
-                {isLoading ? "Signing in..." : success ? "Success!" : "Sign In"}
-              </Button>
-            </form>
-          </Form>
-          <div className="mt-4 text-center text-sm">
-            Don't have an account?{" "}
-            <Link to="/sign-up" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </div>
+            </div>
+            
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+            
+            <p className="text-center text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Link to="/sign-up" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </form>
         </CardContent>
       </Card>
     </div>
